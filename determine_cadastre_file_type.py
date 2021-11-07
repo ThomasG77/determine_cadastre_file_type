@@ -138,7 +138,7 @@ def main():
     elif not dir_dest.exists() and not dir_dest.is_dir():
         print(f"Target directory {sub_dir_dest} does not exists")
     else:
-        files = [f"{f}" for f in dir_source.glob('*dep01*')]
+        files = [f"{f}" for f in dir_source.glob('*_dep*')]
         logging.debug('\n'.join(files))
         couples_idtypecadastre_directory = [get_directory_name_from_projection_within_file(f) for f in files]
         couples_idtypecadastre_directory = {i[0]: i[1] for i in couples_idtypecadastre_directory}
