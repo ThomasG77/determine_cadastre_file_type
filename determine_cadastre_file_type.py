@@ -64,9 +64,10 @@ def get_directory_name_from_projection_within_file(abs_zip_path):
     logging.debug(f"ID for type of data: {capture_id_type_data}")
     with ZipFile(abs_zip_path, "r") as zipObj:
         # Get list of ZipInfo objects
-        listOfiles = zipObj.infolist()
+        listOfFiles = zipObj.infolist()
+        listOfFilesTarBz2 = [f for f in listOfFiles if f.filename.endswith('.tar.bz2')]
         # Get element name, a tar.bz2
-        elem = listOfiles[0]
+        elem = listOfFilesTarBz2[0]
         # Read in memory the zip file
         extracted = zipObj.read(elem.filename)
         # Get in memory the tar.bz2
@@ -115,6 +116,7 @@ def get_directory_name_from_projection_within_file(abs_zip_path):
             target_dir = "edigeo"
         if not isL93:
             target_dir += "-cc"
+        logging.debug(f"id: {capture_id_type_data}, target: {target_dir}")
         return [capture_id_type_data, target_dir]
 
 def main():
@@ -124,7 +126,6 @@ def main():
     requiredNamed.add_argument('-d', '--directory', help='Input zip file name', required=True)
     parser.add_argument("-t", "--targetdir", help="Output directory destination")
     args = parser.parse_args()
-    print(args)
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
     if not abs_departements_path.exists():
@@ -134,17 +135,19 @@ def main():
     target_dir = dir_source if args.targetdir is None else args.targetdir
     dir_dest = Path(target_dir)
     if not dir_source.exists() and not dir_source.is_dir():
-        print(f"Source directory {dir_source} does not exists")
+        logging.debug(f"Source directory {dir_source} does not exists")
     elif not dir_dest.exists() and not dir_dest.is_dir():
-        print(f"Target directory {sub_dir_dest} does not exists")
+        logging.debug(f"Target directory {sub_dir_dest} does not exists")
     else:
-        files = [f"{f}" for f in dir_source.glob('*_dep*')]
-        logging.debug('\n'.join(files))
+        files = [f"{f}" for f in Path(dir_source).glob('*_dep*')]
+        list_files = '\n'.join(files)
+        logging.debug(f"FILES: {list_files}")
         couples_idtypecadastre_directory = [get_directory_name_from_projection_within_file(f) for f in files]
         couples_idtypecadastre_directory = {i[0]: i[1] for i in couples_idtypecadastre_directory}
-        logging.debug(couples_idtypecadastre_directory)
+        logging.debug(f'couples_idtypecadastre_directory: {couples_idtypecadastre_directory}')
         for key, value in couples_idtypecadastre_directory.items():
             sub_dir_dest = dir_dest / value
+            logging.debug(f'sub_dir_dest: {sub_dir_dest}')
             sub_dir_dest.mkdir(parents=False, exist_ok=True)
             for f in dir_source.glob(f"Commande*{key}*"):
                 shutil.copy2(f, sub_dir_dest / f.name)
