@@ -147,7 +147,7 @@ def main():
             sub_dir_dest = dir_dest / value
             sub_dir_dest.mkdir(parents=False, exist_ok=True)
             for f in dir_source.glob(f"Commande*{key}*"):
-                shutil.move(f, sub_dir_dest / f.name)
+                shutil.copy2(f, sub_dir_dest / f.name)
 
 if __name__ == "__main__":
     # execute only if run as a script
