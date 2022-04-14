@@ -14,6 +14,7 @@ import glob
 import py7zr
 from osgeo import gdal, ogr, osr
 
+
 class MakeSpatialQuery:
     def __init__(self, file):
         self.source_ds = gdal.OpenEx(file, gdal.OF_VECTOR)
@@ -34,6 +35,7 @@ class MakeSpatialQuery:
             self.source_ds.ReleaseResultSet(self.sql_lyr)
         self.source_ds = None
 
+
 script_path = os.path.dirname(os.path.realpath(__file__))
 
 departements_path = "DEPARTEMENT.shp"
@@ -42,6 +44,7 @@ abs_departements_path = Path(script_path) / Path(departements_path)
 URL = "ftp://Admin_Express_ext:Dahnoh0eigheeFok@ftp3.ign.fr/ADMIN-EXPRESS-COG_3-0__SHP__FRA_L93_2021-05-19.7z"
 compressed_file_name = URL.split("/")[-1]
 abs_compressed_file_name = Path(script_path) / Path(compressed_file_name)
+
 
 def uncompress_departements_layer():
     urllib.request.urlretrieve(URL, abs_compressed_file_name)
@@ -54,18 +57,21 @@ def uncompress_departements_layer():
     shutil.rmtree(selective_files[0].split("/")[0])
     Path(abs_compressed_file_name).unlink()
 
+
 def get_directory_name_from_projection_within_file(abs_zip_path):
     capture_dept = re.search("dep[0-9A-Za-z]+", Path(abs_zip_path).name)
     if capture_dept is not None:
         dep = capture_dept.group().replace("dep", "")
-    capture_id_type_data = Path(abs_zip_path).name.replace("Commande ", "").split("_")[0]
+    capture_id_type_data = (
+        Path(abs_zip_path).name.replace("Commande ", "").split("_")[0]
+    )
     logging.debug(f"File input: {abs_zip_path}")
     logging.debug(f"Departement: {dep}")
     logging.debug(f"ID for type of data: {capture_id_type_data}")
     with ZipFile(abs_zip_path, "r") as zipObj:
         # Get list of ZipInfo objects
         listOfFiles = zipObj.infolist()
-        listOfFilesTarBz2 = [f for f in listOfFiles if f.filename.endswith('.tar.bz2')]
+        listOfFilesTarBz2 = [f for f in listOfFiles if f.filename.endswith(".tar.bz2")]
         # Get element name, a tar.bz2
         elem = listOfFilesTarBz2[0]
         # Read in memory the zip file
@@ -81,7 +87,9 @@ def get_directory_name_from_projection_within_file(abs_zip_path):
             tar_content = content.extractfile(tar_bz2_element)
             head = [next(tar_content) for x in range(40)]
             extmin_index = [
-                index for index, line in enumerate(head) if "EXTMIN" in line.decode("utf8")
+                index
+                for index, line in enumerate(head)
+                if "EXTMIN" in line.decode("utf8")
             ][0]
             [x, y] = [
                 float(coord.decode("utf8").strip("\r\n"))
@@ -94,7 +102,7 @@ def get_directory_name_from_projection_within_file(abs_zip_path):
                     isL93 = True
                     feature = layer.GetNextFeature()
                     myjson = feature.ExportToJson()
-                    logging.debug(json.dumps(json.loads(myjson).get('properties')))
+                    logging.debug(json.dumps(json.loads(myjson).get("properties")))
         else:
             first_edigeo_geo_file_index = [
                 i for i, m in enumerate(members_names) if ".geo" in m.lower()
@@ -119,12 +127,23 @@ def get_directory_name_from_projection_within_file(abs_zip_path):
         logging.debug(f"id: {capture_id_type_data}, target: {target_dir}")
         return [capture_id_type_data, target_dir]
 
+
 def main():
-    parser = argparse.ArgumentParser(description="Move files to default structure according to their projection")
+    parser = argparse.ArgumentParser(
+        description="Move files to default structure according to their projection"
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
-    requiredNamed = parser.add_argument_group('required named arguments')
-    requiredNamed.add_argument('-d', '--directory', help='Input zip file name', required=True)
+    requiredNamed = parser.add_argument_group("required named arguments")
+    requiredNamed.add_argument(
+        "-d", "--directory", help="Input zip file name", required=True
+    )
     parser.add_argument("-t", "--targetdir", help="Output directory destination")
+    parser.add_argument(
+        "-c",
+        "--copyfiles",
+        help="Copy files after detecting couples id type cadastre and directory",
+        action="store_true",
+    )
     args = parser.parse_args()
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
@@ -139,18 +158,28 @@ def main():
     elif not dir_dest.exists() and not dir_dest.is_dir():
         logging.debug(f"Target directory {sub_dir_dest} does not exists")
     else:
-        files = [f"{f}" for f in Path(dir_source).glob('*_dep*')]
-        list_files = '\n'.join(files)
+        files = [f"{f}" for f in Path(dir_source).glob("*_dep*")]
+        list_files = "\n".join(files)
         logging.debug(f"FILES: {list_files}")
-        couples_idtypecadastre_directory = [get_directory_name_from_projection_within_file(f) for f in files]
-        couples_idtypecadastre_directory = {i[0]: i[1] for i in couples_idtypecadastre_directory}
-        logging.debug(f'couples_idtypecadastre_directory: {couples_idtypecadastre_directory}')
-        for key, value in couples_idtypecadastre_directory.items():
-            sub_dir_dest = dir_dest / value
-            logging.debug(f'sub_dir_dest: {sub_dir_dest}')
-            sub_dir_dest.mkdir(parents=False, exist_ok=True)
-            for f in dir_source.glob(f"Commande*{key}*"):
-                shutil.copy2(f, sub_dir_dest / f.name)
+        couples_idtypecadastre_directory = [
+            get_directory_name_from_projection_within_file(f) for f in files
+        ]
+        couples_idtypecadastre_directory = {
+            i[0]: i[1] for i in couples_idtypecadastre_directory
+        }
+        logging.debug(
+            f"couples_idtypecadastre_directory: {couples_idtypecadastre_directory}"
+        )
+        with open("couples_idtypecadastre_directory.json", "w") as f:
+            json.dump(couples_idtypecadastre_directory, f)
+        if args.copyfiles:
+            for key, value in couples_idtypecadastre_directory.items():
+                sub_dir_dest = dir_dest / value
+                logging.debug(f"sub_dir_dest: {sub_dir_dest}")
+                sub_dir_dest.mkdir(parents=False, exist_ok=True)
+                for f in dir_source.glob(f"Commande*{key}*"):
+                    shutil.copy2(f, sub_dir_dest / f.name)
+
 
 if __name__ == "__main__":
     # execute only if run as a script
