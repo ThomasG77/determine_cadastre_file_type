@@ -26,13 +26,13 @@ def working_directory(path):
 # DONE: Issue 71 (empty tar.gz2)
 # DONE: count 101 departements for each code
 # DONE: check if at least all with an edigeo name. Seen on DOM where all delivery with only DXF content
-subdir = "cadastre-2022-01-01"
 
 
 def errors_analysis(subdir):
     with working_directory(subdir) as work_dir:
         files = [f"{f}" for f in Path(".").glob("*_dep*")]
         my_files_with_size_issues = []
+        all_tar_bz2 = []
         my_depts = {}
         for file in files:
             with ZipFile(file, "r") as zipObj:
@@ -48,6 +48,7 @@ def errors_analysis(subdir):
                     for f in listOfFiles
                     if f.filename.endswith(".tar.bz2")
                 ]
+                all_tar_bz2.append(listOfFilesTarBz2Info)
                 dep = re.search("dep[0-9A-Za-z]+", file).group()
                 if dep not in my_depts:
                     my_depts[dep] = {"dxf": 0, "edigeo": 0}
@@ -85,6 +86,9 @@ def errors_analysis(subdir):
 
     if len(files) != (4 * 101):
         logging.debug("wrong number of files in delivery")
+
+    with open("all_tar_bz2.json", "w") as f:
+        json.dump(all_tar_bz2, f)
 
 
 # abs_departements_path = Path(script_path) / Path(departements_path)
