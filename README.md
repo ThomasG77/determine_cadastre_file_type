@@ -19,11 +19,14 @@ Activate environment
 
 Determine type of cadastre delivery from zip file and move files
 
-    python determine_cadastre_file_type.py -d 'path/to/source/dir'
+    # -c option is for copyfiles: if you want to copy files to the "right" dir
+    python determine_cadastre_file_type.py -c -d 'path/to/source/dir'
     # If you want verbose version
-    python determine_cadastre_file_type.py -v -d 'path/to/source/dir'
+    python determine_cadastre_file_type.py -c -v -d 'path/to/source/dir'
     # If you want a target directory different from the source
     python determine_cadastre_file_type.py -d 'path/to/source/dir' -t 'path/to/target/dir'
+    # If you do not want to copy files but just matching between file name and files types for cadastre
+    python determine_cadastre_file_type.py -d 'path/to/source/dir'
 
 Analysis to determine issues in the delivery before going further
 
