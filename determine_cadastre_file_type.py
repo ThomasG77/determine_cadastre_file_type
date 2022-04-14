@@ -10,6 +10,7 @@ import urllib.request
 from pathlib import Path
 from zipfile import ZipFile
 import glob
+from collections import Counter
 
 import py7zr
 from osgeo import gdal, ogr, osr
@@ -164,9 +165,19 @@ def main():
         couples_idtypecadastre_directory = [
             get_directory_name_from_projection_within_file(f) for f in files
         ]
-        couples_idtypecadastre_directory = {
-            i[0]: i[1] for i in couples_idtypecadastre_directory
-        }
+        # Get some issues with detection, in particular with DOM/TOM
+        result = {}
+        for i in couples_idtypecadastre_directory:
+            if i[0] not in result:
+                result[i[0]] = [i[1]]
+            else:
+                result[i[0]].append(i[1])
+        # Get majority to determine code for type fof file
+        couples_idtypecadastre_directory = {}
+        for i, j in result.items():
+            counter = Counter(j)
+            couples_idtypecadastre_directory[i] = max(counter, key=counter.get)
+
         logging.debug(
             f"couples_idtypecadastre_directory: {couples_idtypecadastre_directory}"
         )
